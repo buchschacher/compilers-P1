@@ -1,1 +1,1 @@
-int scanner(char*);
+token_t scanner(char*);

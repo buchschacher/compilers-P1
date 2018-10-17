@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstring>
 
+#include "token.h"
 #include "scanner.h"
 
 /* Read from file pointer into a string, then call scanner until an EOF token is returned*/
@@ -46,5 +47,13 @@ void testScanner(FILE *fp)
 	printf("====BOF====\n%s====EOF====\n", content);
 
 	// Return tokens until EOF
-	scanner(content);
+	
+	token_t token = scanner(content);
+	while (token.type != EOFtk)
+	{
+		token = scanner(content);
+	}
+
+	//for (int i = 0; i < 15; i++)
+	//	scanner(content);
 }
