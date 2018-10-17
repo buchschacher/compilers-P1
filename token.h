@@ -1,9 +1,13 @@
-//enum tokenID {IDENT_tk, NUM_tk, KW_tk};
-//char *tokenNames[] ={"Identifier", "Number", "Keyword"};
+#ifndef TOKEN_H
+#define TOKEN_H
 
-//char *tokenNames[3];
-//tokenNames[0] = "Identifier";
-//tokenNames[1] = "Number";
-//tokenNames[2] = "Keyword";
+enum tokenID {PNCtk, IDtk, INTtk, ERRtk, EOFtk};
+const char tokenNames[][20] ={"Operator", "Identifier", "Number", "Error", "End of File"};
 
-//typedef struct {tokenID id; char* inst; int ln;} tokTriplet;
+typedef struct token {
+	tokenID type;
+	char inst[9];
+	int line;
+} token_t;
+
+#endif

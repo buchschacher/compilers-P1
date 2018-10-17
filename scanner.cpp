@@ -2,80 +2,103 @@
 #include <cstdlib>
 #include <cctype>
 #include <cstring>
+#include "token.h"
 
-int driver(int, char);
+token_t driver(char*);
 
 int scanner(char *str)
-{	
-	const int tkMaxLen = 9;
-	char tk[tkMaxLen];
-	int tkLen = 0;
-	int state = 0;
-	static int offset = 0;
-	static int line = 1;
+{
+	// yep
+	token_t nextToken;
+	do {
+		nextToken = driver(str);
+		printf("[ %s | \"%s\" | %d ]\n", tokenNames[nextToken.type], nextToken.inst, nextToken.line);
 
-	tk[0] = '\0';
+	} while ((nextToken.type != EOFtk) && (nextToken.type != ERRtk));
 
-	while ((state = driver(state, str[offset])) < 100)
-	{
-		//printf("(%d)--%c-->", state, str[offset]);
-		if (str[offset] == '\n')
-			line++;
-		if ((state > 0) && (state != 4))
-		{
-			tk[tkLen] = str[offset];
-			tk[tkLen + 1] = '\0';
-			tkLen++;
-		}
-		offset++;
-	}
-	printf("Token: [%d, %s, %d]\n", state, tk, line);
-
-	return state;
+	return 0;
 }
 
-int driver(int state, char c)
+token_t driver(char *inStr)
 {
-	int transition = -1;
 	int nextState[5][8] = {
-		{  0,   1,  -1,   2,   3,   4, 200,  -2},
-		{101,   1,   1,   1, 101, 101, 200,  -2},
-		{102, 102, 102,   2, 102, 102, 200,  -2},
-		{103, 103, 103, 103, 103, 103, 200,  -2},
-		{  4,   4,   4,   4,   4,   0, 200,   4}};
+		{  0,   1,  -2,   3,   2,   4, 100,  -1},
+		{101,   1,   1,   1, 101, 101, 101,  -1},
+		{102, 102, 102, 102, 102, 102, 102,  -1},
+		{103, 103, 103,   3, 103, 103, 103,  -1},
+		{  4,   4,   4,   4,   4,   0,   0,   4}
+	};
 
-	if (isspace(c))
+	static int offset = 0;
+	static int line = 1;
+	int state = 0;
+	int trans = 0;
+
+	int tokenLen = 0;
+
+	token_t tempTk;
+	tempTk.inst[0] = '\0';
+
+	while ((state >= 0) && (state < 100))
 	{
-		transition = 0;
-	}
-	else if (islower(c))
-	{
-		transition = 1;
-	}
-	else if (isupper(c))
-	{
-		transition = 2;
-	}
-	else if (isdigit(c))
-	{
-		transition = 3;
-	}
-	else if (ispunct(c) && (c != '#'))
-	{
-		transition = 4;
-	}
-	else if (c == '#')
-	{
-		transition = 5;
-	}
-	else if (c == '\0')
-	{
-		transition = 6;
-	}
-	else
-	{
-		transition = 7;
+		// Lookahead at next character
+		char lookahead = inStr[offset];
+		if (isspace(lookahead))
+			trans = 0;
+		else if (islower(lookahead))
+			trans = 1;
+		else if (isupper(lookahead))
+			trans = 2;
+		else if (isdigit(lookahead))
+			trans = 3;
+		else if (ispunct(lookahead) && lookahead != '#')
+			trans = 4;
+		else if (lookahead == '#')
+			trans = 5;
+		else if (lookahead == '\0')
+			trans = 6;
+		else
+			trans = 7;
+
+		//printf("(%d)--'%c'-->\n", state, lookahead);
+
+		state = nextState[state][trans];
+		if (state < 100)
+		{
+			if ((state != 0) && (state != 4))
+			{
+				tempTk.inst[tokenLen] = lookahead;
+				tokenLen++;
+				tempTk.inst[tokenLen] = '\0';
+			}
+			offset++;
+		}
 	}
 
-	return nextState[state][transition];
+	switch (state)
+	{
+		case -1:
+			printf("Error: Invalid character on line %d\n", line);
+			exit(1);
+		case -2:
+			printf("Error: Invalid token on line %d\n", line);
+			exit(2);
+		case 100:
+			tempTk.type = EOFtk;
+			break;
+		case 101:
+			tempTk.type = IDtk;
+			break;
+		case 102:
+			tempTk.type = PNCtk;
+			break;
+		case 103:
+			tempTk.type =  INTtk;
+			break;
+		default:
+			printf("Error: Invalid state reached (%d)\n", state);
+			exit(3);
+	}
+	tempTk.line = line;
+	return tempTk;
 }

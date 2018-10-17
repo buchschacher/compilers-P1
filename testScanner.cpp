@@ -7,6 +7,8 @@
 /* Read from file pointer into a string, then call scanner until an EOF token is returned*/
 void testScanner(FILE *fp)
 {
+	//printf("testScanner\n");
+
 	const int bufflen = 128;
 	char buff[bufflen];
 	char *content;
@@ -44,5 +46,5 @@ void testScanner(FILE *fp)
 	printf("====BOF====\n%s====EOF====\n", content);
 
 	// Return tokens until EOF
-	while (scanner(content) != 200);
+	scanner(content);
 }
