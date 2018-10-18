@@ -40,12 +40,11 @@ void testScanner(FILE *fp)
 	}
 
 	// Return tokens until EOF
-	token_t token = scanner(content);
-	while (token.type != EOFtk)
-	{
-		printf("%s\t%s\t%d\n", tokenNames[token.type], token.inst, token.line);
+	token_t token;
+	do {
 		token = scanner(content);
-	}
+		printf("%s\t%s\t%d\n", tokenNames[token.type], token.inst, token.line);
+	} while (token.type != EOFtk);
 
 	return;
 }

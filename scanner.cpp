@@ -10,7 +10,7 @@ using namespace std;
 
 int nextState(int, char);
 tokenID stateType(int, char*, int);
-void idkw(char*);
+tokenID idOrKw(char*);
 
 token_t scanner(char *str)
 {
@@ -18,8 +18,6 @@ token_t scanner(char *str)
 	static int offset = 0;
 	static int line = 1;
 	int state = 0;
-	int tokenLen = 0;
-
 	token.inst[0] = '\0';
 
 	// Call FSA until a final state is reached
@@ -28,7 +26,7 @@ token_t scanner(char *str)
 		char lookahead = str[offset];
 		state = nextState(state, lookahead);
 
-		// Build string and track progress
+		// Build string and advance lookahead
 		if (state < 100)
 		{
 			if ((state != 0) && (state != 4))
@@ -44,9 +42,8 @@ token_t scanner(char *str)
 		}
 	}
 	token.line = line;
-
 	token.type = stateType(state, token.inst, line);
-
+	//idkw(token.inst);
 	// Check for reserved words
 
 	return token;
@@ -102,7 +99,7 @@ tokenID stateType(int state, char *inst, int line)
 		case 100:
 			return EOFtk;
 		case 101:
-			return IDtk;
+			return idOrKw(inst);
 		case 102:
 			return PNCtk;
 		case 103:
@@ -113,7 +110,7 @@ tokenID stateType(int state, char *inst, int line)
 	}
 }
 
-void idkw(char *inst)
+tokenID idOrKw(char *inst)
 {
 	string cppinst = inst;
 	map<string, tokenID> kw;
@@ -129,6 +126,11 @@ void idkw(char *inst)
 	kw.insert(pair<string, tokenID>("cond", CONDtk));
 	kw.insert(pair<string, tokenID>("then", THENtk));
 	kw.insert(pair<string, tokenID>("let", LETtk));
+	map<string, tokenID>::iterator it;
 
-
+	it = kw.find(cppinst);
+	if (it != kw.end())
+		return it->second;
+	else
+		return IDtk;
 }
