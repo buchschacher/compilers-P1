@@ -3,8 +3,14 @@
 #include <cctype>
 #include <cstring>
 #include "token.h"
+#include <string>
+#include <map>
+
+using namespace std;
 
 int nextState(int, char);
+tokenID stateType(int, char*, int);
+void idkw(char*);
 
 token_t scanner(char *str)
 {
@@ -17,53 +23,31 @@ token_t scanner(char *str)
 	token.inst[0] = '\0';
 
 	// Call FSA until a final state is reached
-	while ((state >= 0) && (state < 100))
+	while ((state >= 0) && (state <= 4))
 	{
 		char lookahead = str[offset];
 		state = nextState(state, lookahead);
 
+		// Build string and track progress
 		if (state < 100)
 		{
 			if ((state != 0) && (state != 4))
 			{
-				token.inst[tokenLen++] = lookahead;
-				token.inst[tokenLen] = '\0';
+				token.inst[strlen(token.inst) + 1] = '\0';
+				token.inst[strlen(token.inst)] = lookahead;
 			}
 			if (lookahead == '\n')
+			{
 				line++;
+			}
 			offset++;
 		}
 	}
-
-	// Set token or exit with error based on FSA final state
-	switch (state)
-	{
-		case -1:
-			printf("Error: Invalid character on line %d\n", line);
-			exit(1);
-		case -2:
-			printf("Error: Invalid token on line %d\n", line);
-			exit(2);
-		case 100:
-			token.type = EOFtk;
-			break;
-		case 101:
-			token.type = IDtk;
-			break;
-		case 102:
-			token.type = PNCtk;
-			break;
-		case 103:
-			token.type =  INTtk;
-			break;
-		default:
-			printf("Error: Invalid state reached (%d)\n", state);
-			exit(3);
-	}
 	token.line = line;
 
-	printf("[ %s | \"%s\" | %d ]\n", tokenNames[token.type], token.inst, token.line);
+	token.type = stateType(state, token.inst, line);
 
+	// Check for reserved words
 
 	return token;
 }
@@ -88,7 +72,13 @@ int nextState(int state, char c)
 	else if (isdigit(c))
 		trans = 3;
 	else if (ispunct(c) && c != '#')
-		trans = 4;
+	{
+		char valid[] = "=<>:+-*/%.(),{};[]";
+		if (strchr(valid, c) != NULL)
+			trans = 4;
+		else
+			trans = 7;
+	}
 	else if (c == '#')
 		trans = 5;
 	else if (c == '\0')
@@ -97,4 +87,48 @@ int nextState(int state, char c)
 		trans = 7;
 
 	return fsa[state][trans];
+}
+
+tokenID stateType(int state, char *inst, int line)
+{
+	switch (state)
+	{
+		case -1:
+			printf("Error: Invalid character on line %d\n", line);
+			exit(4);
+		case -2:
+			printf("Error: Invalid token on line %d\n", line);
+			exit(5);
+		case 100:
+			return EOFtk;
+		case 101:
+			return IDtk;
+		case 102:
+			return PNCtk;
+		case 103:
+			return INTtk;
+		default:
+			printf("Error: Invalid state reached (%d)\n", state);
+			exit(6);
+	}
+}
+
+void idkw(char *inst)
+{
+	string cppinst = inst;
+	map<string, tokenID> kw;
+	kw.insert(pair<string, tokenID>("begin", BGNtk));
+	kw.insert(pair<string, tokenID>("end", ENDtk));
+	kw.insert(pair<string, tokenID>("iter", ITERtk));
+	kw.insert(pair<string, tokenID>("void", VOIDtk));
+	kw.insert(pair<string, tokenID>("var", VARtk));
+	kw.insert(pair<string, tokenID>("return", RTNtk));
+	kw.insert(pair<string, tokenID>("read", READtk));
+	kw.insert(pair<string, tokenID>("print", PRNTtk));
+	kw.insert(pair<string, tokenID>("program", PROGtk));
+	kw.insert(pair<string, tokenID>("cond", CONDtk));
+	kw.insert(pair<string, tokenID>("then", THENtk));
+	kw.insert(pair<string, tokenID>("let", LETtk));
+
+
 }

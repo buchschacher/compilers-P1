@@ -6,7 +6,6 @@
 
 #include "token.h"
 #include "testScanner.h"
-#include "scanner.h"
 
 int main(int argc, char *argv[])
 {

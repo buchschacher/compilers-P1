@@ -8,52 +8,44 @@
 /* Read from file pointer into a string, then call scanner until an EOF token is returned*/
 void testScanner(FILE *fp)
 {
-	//printf("testScanner\n");
-
-	const int bufflen = 128;
-	char buff[bufflen];
+	const int buffLen = 128;
+	char buff[buffLen];
 	char *content;
-	int contentlen = 1;
+	int contentLen = 1;
 																					
-	// Allocate memory
+	// Innitialize memory for allocation
 	content = (char*)malloc(sizeof(char));
 	if (content == NULL)
 	{
 		printf("Could not allocate memory\n");
-		exit(1);
+		exit(2);
 	}
 	content[0] = '\0';
 
-	// Read file line by line
-	while(fgets(buff, bufflen, fp) != NULL)
+	// Read file one line or buffLen characters at a time
+	while (fgets(buff, buffLen, fp) != NULL)
 	{
 		// Reallocate memory
 		char *oldPtr = content;
-		contentlen = contentlen + strlen(buff);
-		content = (char*)realloc(content, contentlen);
-
-		// Free memory on failur
+		contentLen = contentLen + strlen(buff);
+		content = (char*)realloc(content, contentLen);
 		if(content == NULL)
 		{
+			// Free memory on fail
 			printf("Cloud not reallocate memory\n");
 			free(oldPtr);
-			exit(2);
+			exit(3);
 		}
-
-		// Concatenate
 		strcat(content, buff);
 	}
 
-	printf("====BOF====\n%s====EOF====\n", content);
-
 	// Return tokens until EOF
-	
 	token_t token = scanner(content);
 	while (token.type != EOFtk)
 	{
+		printf("%s\t%s\t%d\n", tokenNames[token.type], token.inst, token.line);
 		token = scanner(content);
 	}
 
-	//for (int i = 0; i < 15; i++)
-	//	scanner(content);
+	return;
 }
