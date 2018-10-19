@@ -11,95 +11,122 @@ using namespace std;
 int nextState(int, char);
 tokenID termType(int, char*, int);
 tokenID keywordLookup(char*);
+int charPath(char);
+
+const int states = 5;
+const int paths = 8;
+int fsa[states][paths] = {
+	{  0,   1,  -2,   3,   2,   4, 100,  -1},
+	{101,   1,   1,   1, 101, 101, 101,  -1},
+	{102, 102, 102, 102, 102, 102, 102,  -1},
+	{103, 103, 103,   3, 103, 103, 103,  -1},
+	{  4,   4,   4,   4,   4,   0,   0,   4}
+};
+
 
 token_t scanner(char *str)
 {
-	token_t token;
-	static int offset = 0;
 	static int line = 1;
-	int state = 0;
-	token.inst[0] = '\0';
+	static int offset = 0;
+	static char nextChar = str[offset++];
 
-	// Call FSA until a final state is reached
+	int state = 0;
+	int nextState;
+	token_t token;
+	token.inst[0] = '\0';
+	token.line = line;
+
+	// Repeat until terminal state
 	while ((state >= 0) && (state <= 4))
 	{
-		char lookahead = str[offset];
-		state = nextState(state, lookahead);
+		int path = charPath(nextChar);
+		int nextState = fsa[state][path];
 
-		// Build string and advance lookahead
-		if (state < 100)
+		if (nextState < 0)
 		{
-			if ((state != 0) && (state != 4))
+			switch (nextState)
+			{
+		 		case -1:
+					printf("Error: Invalid character on line %d\n", line);
+					exit(4);
+				case -2:
+					printf("Error: Invalid token on line %d\n", line);
+					exit(5);
+			}
+		}
+		else if (nextState > 4)
+		{
+			//printf("(%d)\n", nextState);
+			switch (nextState)
+			{
+				case 100:
+					token.type = EOFtk;
+					return token;
+				case 101:
+					token.type = IDtk;
+					return token;
+				case 102:
+					token.type = PNCtk;
+					return token;
+				case 103:
+					token.type = INTtk;
+					return token;
+				default:
+					printf("Error: Invalid state reached (%d)\n", state);
+					exit(6);
+			}
+		}
+		else
+		{
+			if (nextChar == '\n')
+			{
+				token.line = ++line;
+			}
+			if ((nextState != 0) && (nextState != 4))
 			{
 				token.inst[strlen(token.inst) + 1] = '\0';
-				token.inst[strlen(token.inst)] = lookahead;
+				token.inst[strlen(token.inst)] = nextChar;
 			}
-			if (lookahead == '\n')
-			{
-				line++;
-			}
-			offset++;
+			state = nextState;
+			nextChar = str[offset++];
 		}
 	}
-
-	// Build token
-	token.line = line;
-	token.type = termType(state, token.inst, line);
-
-	return token;
 }
 
 /* Return next state of FSA based on current state and lookahead character */
-int nextState(int state, char c)
+int charPath(char c)
 {
-	const int states = 5;
-	const int paths = 8;
-	int fsa[states][paths] = {
-		{  0,   1,  -2,   3,   2,   4, 100,  -1},
-		{101,   1,   1,   1, 101, 101, 101,  -1},
-		{102, 102, 102, 102, 102, 102, 102,  -1},
-		{103, 103, 103,   3, 103, 103, 103,  -1},
-		{  4,   4,   4,   4,   4,   0,   0,   4}
-	};
-	int path;
-
 	if (isspace(c))
-		path = 0;
-	else if (islower(c))
-		path = 1;
-	else if (isupper(c))
-		path = 2;
-	else if (isdigit(c))
-		path = 3;
-	else if (ispunct(c) && c != '#')
+		return 0;
+	if (islower(c))
+		return 1;
+	if (isupper(c))
+		return 2;
+	if (isdigit(c))
+		return 3;
+	if (ispunct(c) && c != '#')
 	{
 		char valid[] = "=<>:+-*/%.(),{};[]";
 		if (strchr(valid, c) != NULL)
-			path = 4;
+			return 4;
 		else
-			path = 7;
+			return 7;
 	}
-	else if (c == '#')
-		path = 5;
-	else if (c == '\0')
-		path = 6;
-	else
-		path = 7;
-
-	return fsa[state][path];
+	if (c == '#')
+		return 5;
+	if (c == '\0')
+		return 6;
+	return 7;
 }
+
+
+//=========================================
 
 /* Pass the terminal state of the FSA and return the token type or error message */
 tokenID termType(int state, char *inst, int line)
 {
 	switch (state)
 	{
-		case -1:
-			printf("Error: Invalid character on line %d\n", line);
-			exit(4);
-		case -2:
-			printf("Error: Invalid token on line %d\n", line);
-			exit(5);
 		case 100:
 			return EOFtk;
 		case 101:

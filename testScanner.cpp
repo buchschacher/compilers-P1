@@ -3,7 +3,7 @@
 #include <cstring>
 
 #include "token.h"
-#include "scanner.h"
+#include "scanner2.h"
 
 /* Read from file pointer into a string, then call scanner until an EOF token is returned*/
 void testScanner(FILE *fp)
@@ -17,7 +17,7 @@ void testScanner(FILE *fp)
 	content = (char*)malloc(sizeof(char));
 	if (content == NULL)
 	{
-		printf("Could not allocate memory\n");
+		printf("Erro: Could not allocate memory\n");
 		exit(2);
 	}
 	content[0] = '\0';
@@ -32,7 +32,7 @@ void testScanner(FILE *fp)
 		if(content == NULL)
 		{
 			// Free memory on fail
-			printf("Cloud not reallocate memory\n");
+			printf("Error: Cloud not reallocate memory\n");
 			free(oldPtr);
 			exit(3);
 		}
@@ -43,8 +43,12 @@ void testScanner(FILE *fp)
 	token_t token;
 	do {
 		token = scanner(content);
-		printf("%s\t%s\t%d\n", tokenNames[token.type], token.inst, token.line);
+		printf("%s \"%s\" %d\n", tokenNames[token.type], token.inst, token.line);
+		//printf("%-10s%-8s%3d\n", tokenNames[token.type], token.inst, token.line);
 	} while (token.type != EOFtk);
+
+	//for (int i = 0; i < 3; i++)
+	//	scanner(content);
 
 	return;
 }

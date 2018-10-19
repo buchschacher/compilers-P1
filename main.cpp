@@ -27,6 +27,12 @@ int main(int argc, char *argv[])
 		
 		// Open file and call test scanner with file pointer
 		fp = fopen(fileName, "r");
+		if (fp == NULL)
+		{
+			// Error if file cannot be opened
+			printf("Error: Could not open file \"%s\"\n", fileName);
+			return 1;
+		}
 		testScanner(fp);
 		fclose(fp);
 	}
