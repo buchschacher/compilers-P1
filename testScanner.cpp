@@ -3,7 +3,7 @@
 #include <cstring>
 
 #include "token.h"
-#include "scanner2.h"
+#include "scanner.h"
 
 /* Read from file pointer into a string, then call scanner until an EOF token is returned*/
 void testScanner(FILE *fp)
