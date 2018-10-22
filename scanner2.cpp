@@ -2,27 +2,16 @@
 #include <cstdlib>
 #include <cctype>
 #include <cstring>
-#include "token.h"
 #include <string>
 #include <map>
 
+#include "token.h"
+
 using namespace std;
 
-int nextState(int, char);
-tokenID termType(int, char*, int);
+int getNextState(int, char);
+tokenID termType(int);
 tokenID keywordLookup(char*);
-int charPath(char);
-
-const int states = 5;
-const int paths = 8;
-int fsa[states][paths] = {
-	{  0,   1,  -2,   3,   2,   4, 100,  -1},
-	{101,   1,   1,   1, 101, 101, 101,  -1},
-	{102, 102, 102, 102, 102, 102, 102,  -1},
-	{103, 103, 103,   3, 103, 103, 103,  -1},
-	{  4,   4,   4,   4,   4,   0,   0,   4}
-};
-
 
 token_t scanner(char *str)
 {
@@ -39,9 +28,7 @@ token_t scanner(char *str)
 	// Repeat until terminal state
 	while ((state >= 0) && (state <= 4))
 	{
-		int path = charPath(nextChar);
-		int nextState = fsa[state][path];
-
+		nextState = getNextState(state, nextChar);
 		if (nextState < 0)
 		{
 			switch (nextState)
@@ -56,32 +43,14 @@ token_t scanner(char *str)
 		}
 		else if (nextState > 4)
 		{
-			//printf("(%d)\n", nextState);
-			switch (nextState)
-			{
-				case 100:
-					token.type = EOFtk;
-					return token;
-				case 101:
-					token.type = IDtk;
-					return token;
-				case 102:
-					token.type = PNCtk;
-					return token;
-				case 103:
-					token.type = INTtk;
-					return token;
-				default:
-					printf("Error: Invalid state reached (%d)\n", state);
-					exit(6);
-			}
+			if ((token.type = termType(nextState)) == IDtk)
+				token.type = keywordLookup(token.inst);
+			return token;
 		}
 		else
 		{
 			if (nextChar == '\n')
-			{
 				token.line = ++line;
-			}
 			if ((nextState != 0) && (nextState != 4))
 			{
 				token.inst[strlen(token.inst) + 1] = '\0';
@@ -93,52 +62,60 @@ token_t scanner(char *str)
 	}
 }
 
-/* Return next state of FSA based on current state and lookahead character */
-int charPath(char c)
+int getNextState(int state, char nextChar)
 {
-	if (isspace(c))
-		return 0;
-	if (islower(c))
-		return 1;
-	if (isupper(c))
-		return 2;
-	if (isdigit(c))
-		return 3;
-	if (ispunct(c) && c != '#')
+	// FSA diagram represented as a table
+	const int states = 5;
+	const int paths = 8;
+	const int fsa[states][paths] = {
+		{  0,   1,  -2,   3,   2,   4, 100,  -1},
+		{101,   1,   1,   1, 101, 101, 101,  -1},
+		{102, 102, 102, 102, 102, 102, 102,  -1},
+		{103, 103, 103,   3, 103, 103, 103,  -1},
+		{  4,   4,   4,   4,   4,   0,   0,   4}
+	};
+
+	// Process next character into column index for FSA table
+	int path;
+	if (isspace(nextChar))
+		path = 0;
+	else if (islower(nextChar))
+		path = 1;
+	else if (isupper(nextChar))
+		path = 2;
+	else if (isdigit(nextChar))
+		path = 3;
+	else if (ispunct(nextChar) && nextChar != '#')
 	{
 		char valid[] = "=<>:+-*/%.(),{};[]";
-		if (strchr(valid, c) != NULL)
-			return 4;
+		if (strchr(valid, nextChar) != NULL)
+			path = 4;
 		else
-			return 7;
+			path = 7;
 	}
-	if (c == '#')
-		return 5;
-	if (c == '\0')
-		return 6;
-	return 7;
+	else if (nextChar == '#')
+		path = 5;
+	else if (nextChar == '\0')
+		path = 6;
+	else
+		path = 7;
+
+	return fsa[state][path]; 
 }
 
-
-//=========================================
-
 /* Pass the terminal state of the FSA and return the token type or error message */
-tokenID termType(int state, char *inst, int line)
+tokenID termType(int state)
 {
-	switch (state)
-	{
-		case 100:
-			return EOFtk;
-		case 101:
-			return keywordLookup(inst);
-		case 102:
-			return PNCtk;
-		case 103:
-			return INTtk;
-		default:
-			printf("Error: Invalid state reached (%d)\n", state);
-			exit(6);
-	}
+	if (state == 100)
+		return EOFtk;
+	if (state == 101)
+		return IDtk;
+	if (state == 102)
+		return PNCtk;
+	if (state == 103)
+		return INTtk;
+	printf("Error: Invalid state reached (%d)\n", state);
+	exit(6);
 }
 
 /* Pass the instance from a token and determine if it is a reserve word and return
@@ -165,11 +142,7 @@ tokenID keywordLookup(char *inst)
 	// Check if identifier is in the keyword list
 	it = keywordList.find(sInst);
 	if (it != keywordList.end())
-	{
 		return it->second;
-	}
 	else
-	{
 		return IDtk;
-	}
 }
